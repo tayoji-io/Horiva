@@ -1,0 +1,622 @@
+<!DOCTYPE html><html class="h-full" lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>ZoneBar 设置 - macOS 多时区时钟</title>
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Custom Configuration -->
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            mac: {
+              window: '#F5F5F7',
+              windowDark: '#1E1E1E',
+              sidebar: '#EBEBEF',
+              card: '#FFFFFF',
+              cardDark: '#2C2C2E',
+              border: '#E2E2E6',
+              borderDark: '#3A3A3C',
+              accent: '#0A84FF',
+              accentHover: '#0071E3',
+              subtext: '#86868B',
+              trafficRed: '#FF5F56',
+              trafficYellow: '#FFBD2E',
+              trafficGreen: '#27C93F'
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"PingFang SC"', '"Hiragino Sans GB"', 'sans-serif'],
+            mono: ['"SF Mono"', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          },
+          boxShadow: {
+            'mac-window': '0 25px 70px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.1)',
+            'mac-window-dark': '0 25px 70px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+            'mac-card': '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)'
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom Styling for macOS Native Emulation -->
+<style data-purpose="mac-ui-effects">
+    /* Custom scrollbar matching macOS styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(140, 140, 145, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(140, 140, 145, 0.5);
+    }
+    /* Native macOS switch toggling */
+    .macos-switch input:checked ~ .macos-switch-track {
+      background-color: #34C759;
+    }
+    .macos-switch input:checked ~ .macos-switch-track .macos-switch-thumb {
+      transform: translateX(16px);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-200 via-sky-100 to-indigo-100 min-h-screen text-slate-800 antialiased flex flex-col items-center justify-start p-0 font-sans selection:bg-blue-500 selection:text-white">
+<!-- BEGIN: macOS App Window Container -->
+<!-- BEGIN: Independent macOS Desktop Top Menubar & Popover -->
+<div class="w-full sticky top-0 z-50 mb-6 bg-gradient-to-r from-slate-800 via-sky-900 to-indigo-950 shadow-lg">
+  <!-- Full-width macOS Menu Bar -->
+  <header class="relative h-8 bg-neutral-900/75 backdrop-blur-2xl border-b border-white/15 px-4 flex items-center justify-between text-xs text-white select-none">
+    <!-- Left: Apple Logo & App Menu -->
+    <div class="flex items-center space-x-3.5 text-neutral-300 text-[11px] font-medium">
+      <svg class="w-3.5 h-3.5 text-neutral-100 hover:opacity-80 cursor-default" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.75 1.04-1.8 0.93-2.85-.9.04-1.99.6-2.63 1.35-.57.65-.97 1.72-.83 2.73.99.08 2.01-.5 2.53-1.23z"></path>
+      </svg>
+      <span class="text-white font-semibold">Finder</span>
+      <span class="hidden sm:inline hover:text-white cursor-default text-neutral-300/90">文件</span>
+      <span class="hidden sm:inline hover:text-white cursor-default text-neutral-300/90">编辑</span>
+      <span class="hidden md:inline hover:text-white cursor-default text-neutral-300/90">显示</span>
+      <span class="hidden md:inline hover:text-white cursor-default text-neutral-300/90">前往</span>
+      <span class="hidden md:inline hover:text-white cursor-default text-neutral-300/90">窗口</span>
+      <span class="hidden md:inline hover:text-white cursor-default text-neutral-300/90">帮助</span>
+    </div>
+
+    <!-- Right: Independent ZoneBar Status Item + macOS System Tray -->
+    <div class="flex items-center space-x-2.5 relative">
+      <!-- Active ZoneBar Pill (Status item in menubar) -->
+      <div class="flex items-center space-x-2.5 bg-blue-600/80 hover:bg-blue-600 border border-white/30 rounded-md px-2.5 py-1 text-[11px] font-mono tracking-tight shadow-sm cursor-pointer transition-colors text-white ring-2 ring-blue-400/50">
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span class="text-neutral-200 font-sans text-[11px]">上海</span>
+          <span class="font-medium text-white">11-09 Mon 13:21</span>
+        </span>
+        <span class="text-white/50 font-sans font-bold">·</span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+          <span class="text-neutral-200 font-sans text-[11px]">洛杉矶</span>
+          <span class="font-medium text-white">11-08 Sun 21:21</span>
+        </span>
+      </div>
+
+      <!-- Standard Status Icons -->
+      <div class="flex items-center pl-1 space-x-2.5 text-neutral-300 text-xs">
+        <svg class="w-3.5 h-3.5 hover:text-white cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" x2="12.01" y1="20" y2="20"></line>
+        </svg>
+        <svg class="w-3.5 h-3.5 hover:text-white cursor-pointer" fill="currentColor" viewBox="0 0 24 24">
+          <rect fill="none" height="10" rx="2" stroke="currentColor" stroke-width="2" width="16" x="2" y="7"></rect>
+          <rect height="6" rx="1" width="10" x="4" y="9"></rect>
+          <path d="M20 10v4" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+        </svg>
+        <svg class="w-3.5 h-3.5 hover:text-white cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+        </svg>
+        <svg class="w-3 h-3 hover:text-white cursor-pointer" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+        </svg>
+      </div>
+
+      <!-- Independent Menubar Popover Panel Anchored to the Status Bar Item -->
+      <div class="absolute top-9 right-16 w-80 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/60 p-2.5 text-neutral-800 space-y-1 z-50 ring-1 ring-black/5 animate-in fade-in">
+        <!-- Caret arrow pointing up to ZoneBar pill -->
+        <div class="absolute -top-1.5 right-12 w-3 h-3 bg-white/90 backdrop-blur-2xl rotate-45 border-t border-l border-white/60"></div>
+        
+        <div class="px-2 py-1 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider flex items-center justify-between">
+          <span class="">ZoneBar 下拉菜单</span>
+          <span class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">运行中</span>
+        </div>
+
+        <!-- Popover Zone Item 1: Shanghai -->
+        <div class="group/item p-2.5 rounded-xl hover:bg-neutral-100/90 active:bg-blue-600 transition-colors cursor-pointer">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 group-hover/item:scale-110 transition-transform"></span>
+              <span class="text-[13px] font-semibold text-neutral-900 group-hover/item:active:text-white">上海</span>
+              <span class="text-[10px] text-neutral-400 font-mono group-hover/item:active:text-white/70">CST (UTC+8)</span>
+            </div>
+            <span class="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium border border-emerald-200/60">本地基准</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-1 pl-4">
+            <span class="font-mono text-sm font-bold text-neutral-800 tracking-tight group-hover/item:active:text-white">11-09 Mon 13:21</span>
+            <span class="text-[11px] text-neutral-400 font-medium group-hover/item:text-blue-600 group-hover/item:active:text-white flex items-center gap-0.5">
+              <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2"></rect>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke-width="2"></path>
+              </svg>
+              点击复制
+            </span>
+          </div>
+        </div>
+
+        <!-- Popover Zone Item 2: Los Angeles -->
+        <div class="group/item p-2.5 rounded-xl hover:bg-neutral-100/90 active:bg-blue-600 transition-colors cursor-pointer">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-500 group-hover/item:scale-110 transition-transform"></span>
+              <span class="text-[13px] font-semibold text-neutral-900 group-hover/item:active:text-white">洛杉矶</span>
+              <span class="text-[10px] text-neutral-400 font-mono group-hover/item:active:text-white/70">PST (UTC-8)</span>
+            </div>
+            <span class="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-medium border border-amber-200/60">慢 16 小时 · 昨天</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-1 pl-4">
+            <span class="font-mono text-sm font-bold text-neutral-800 tracking-tight group-hover/item:active:text-white">11-08 Sun 21:21</span>
+            <span class="text-[11px] text-neutral-400 font-medium group-hover/item:text-blue-600 group-hover/item:active:text-white flex items-center gap-0.5">
+              <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="2"></rect>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke-width="2"></path>
+              </svg>
+              点击复制
+            </span>
+          </div>
+        </div>
+
+        <div class="border-t border-neutral-200/80 my-1"></div>
+
+        <!-- Quick Actions -->
+        <button type="button" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-neutral-700 text-xs text-left transition-colors group/btn">
+          <span class="flex items-center gap-2">
+            <svg class="w-3.5 h-3.5 text-neutral-400 group-hover/btn:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path>
+            </svg>
+            打开偏好设置...
+          </span>
+          <span class="text-[11px] font-mono text-neutral-400 group-hover/btn:text-white/80">⌘ ,</span>
+        </button>
+
+        <button type="button" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-neutral-700 text-xs text-left transition-colors group/btn">
+          <span class="flex items-center gap-2">
+            <svg class="w-3.5 h-3.5 text-neutral-400 group-hover/btn:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+            </svg>
+            跨时区会议换算器
+          </span>
+          <span class="text-[11px] font-mono text-neutral-400 group-hover/btn:text-white/80">⌘ K</span>
+        </button>
+
+        <button type="button" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-rose-600 hover:text-white text-neutral-700 text-xs text-left transition-colors group/btn">
+          <span class="flex items-center gap-2">
+            <svg class="w-3.5 h-3.5 text-neutral-400 group-hover/btn:text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M18.36 6.64a9 9 0 11-12.73 0"></path>
+              <line x1="12" y1="2" x2="12" y2="12"></line>
+            </svg>
+            退出 ZoneBar
+          </span>
+          <span class="text-[11px] font-mono text-neutral-400 group-hover/btn:text-white/80">⌘ Q</span>
+        </button>
+      </div>
+    </div>
+  </header>
+</div>
+<!-- END: Independent macOS Desktop Top Menubar & Popover --><main class="w-full max-w-3xl bg-[#F6F6F6] text-[#1D1D1F] rounded-2xl shadow-mac-window overflow-hidden border border-black/10 flex flex-col backdrop-blur-xl mb-8">
+<!-- BEGIN: Titlebar & Window Controls -->
+<header class="h-13 bg-[#ECECEC]/90 border-b border-black/[0.08] px-4 py-3 flex items-center justify-between select-none drag-region">
+<!-- Traffic Light Window Buttons -->
+<div class="flex items-center space-x-2">
+<button aria-label="关闭窗口" class="w-3 h-3 rounded-full bg-mac-trafficRed hover:brightness-90 transition-all flex items-center justify-center group border border-black/10" type="button">
+<svg class="w-1.5 h-1.5 text-black/60 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button aria-label="最小化窗口" class="w-3 h-3 rounded-full bg-mac-trafficYellow hover:brightness-90 transition-all flex items-center justify-center group border border-black/10" type="button">
+<svg class="w-1.5 h-1.5 text-black/60 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M20 12H4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button aria-label="全屏" class="w-3 h-3 rounded-full bg-mac-trafficGreen hover:brightness-90 transition-all flex items-center justify-center group border border-black/10" type="button">
+<svg class="w-1.5 h-1.5 text-black/60 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- App Title & Identity -->
+<div class="flex items-center space-x-2">
+<div class="w-5 h-5 rounded-md bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center text-white shadow-sm">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="10"></circle>
+<polyline points="12 6 12 12 16 14"></polyline>
+<path d="M2 12h4m12 0h4"></path>
+</svg>
+</div>
+<h1 class="text-[13px] font-semibold tracking-tight text-neutral-800">ZoneBar 设置</h1>
+<span class="text-[10px] bg-neutral-200/80 text-neutral-600 px-1.5 py-0.5 rounded font-mono">v2.4</span>
+</div>
+<!-- Quick Action: Help/Settings Link -->
+<div class="flex items-center space-x-2">
+<button class="text-xs text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-black/5 transition-colors flex items-center gap-1" type="button">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="">帮助</span>
+</button>
+</div>
+</header>
+<!-- END: Titlebar & Window Controls -->
+<!-- Scrollable Body Content -->
+<div class="overflow-y-auto max-h-[calc(90vh-100px)] p-6 space-y-6">
+<!-- BEGIN: Live Menu Bar Preview Section -->
+<!-- BEGIN: Pure Menu Bar Status Bar Live Preview Section -->
+<section class="space-y-3" data-purpose="live-menu-bar-preview">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <label class="text-[12px] font-semibold uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect height="14" rx="2" ry="2" width="20" x="2" y="3"></rect>
+          <line x1="8" x2="16" y1="21" y2="21"></line>
+          <line x1="12" x2="12" y1="17" y2="21"></line>
+        </svg>
+        状态栏实时预览 (Status Bar Preview)
+      </label>
+      <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium border border-blue-200/60">实时同步</span>
+    </div>
+    <div class="flex items-center gap-2 text-[11px] text-neutral-500">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="">菜单已独立于桌面菜单栏</span>
+    </div>
+  </div>
+
+  <!-- Compact & Sleek macOS Status Bar Preview Strip -->
+  <div class="rounded-xl overflow-hidden border border-black/10 bg-neutral-900/90 text-white p-3 shadow-md backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5 text-xs text-neutral-400">
+      <span class="text-[11px] text-neutral-300 font-medium px-2 py-0.5 bg-white/10 rounded">状态栏外观效果</span>
+      <span class="hidden sm:inline text-neutral-500">|</span>
+      <span class="text-[11px] hidden sm:inline">当前启用的格式与符号</span>
+    </div>
+    
+    <!-- ZoneBar Preview Pill Component -->
+    <div class="inline-flex items-center space-x-2.5 bg-white/15 hover:bg-white/20 border border-white/25 rounded-lg px-3 py-1.5 text-xs font-mono tracking-tight shadow-sm transition-all text-neutral-100 select-none">
+      <!-- Shanghai -->
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="text-neutral-200 font-sans text-xs font-medium">上海</span>
+        <span class="font-semibold text-white">11-09 Mon 13:21</span>
+      </span>
+      <span class="text-white/40 font-sans font-bold">·</span>
+      <!-- Los Angeles -->
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+        <span class="text-neutral-200 font-sans text-xs font-medium">洛杉矶</span>
+        <span class="font-semibold text-white">11-08 Sun 21:21</span>
+      </span>
+    </div>
+  </div>
+</section>
+<!-- END: Pure Menu Bar Status Bar Live Preview Section -->
+<!-- END: Live Menu Bar Preview Section -->
+<!-- BEGIN: Configured Timezones Section -->
+<section class="space-y-3" data-purpose="configured-timezones-list">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-sm font-semibold text-neutral-800">已选时区列表</h2>
+<p class="text-[12px] text-neutral-500">按由左至右顺序在菜单栏排列，可直接拖拽或调整排序</p>
+</div>
+<span class="text-xs bg-blue-50 text-blue-600 font-medium px-2 py-0.5 rounded-full border border-blue-200">已启用 2 个时区</span>
+</div>
+<div class="space-y-2.5">
+<!-- Timezone Item 1 -->
+<div class="group bg-white rounded-xl p-3 border border-neutral-200/80 shadow-mac-card hover:border-blue-400 transition-all flex items-center justify-between gap-3">
+<div class="flex items-center space-x-3 flex-1 min-w-0">
+<!-- Reorder Handle -->
+<div class="cursor-grab active:cursor-grabbing text-neutral-300 hover:text-neutral-500 p-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<circle cx="9" cy="5" r="1"></circle>
+<circle cx="9" cy="12" r="1"></circle>
+<circle cx="9" cy="19" r="1"></circle>
+<circle cx="15" cy="5" r="1"></circle>
+<circle cx="15" cy="12" r="1"></circle>
+<circle cx="15" cy="19" r="1"></circle>
+</svg>
+</div>
+<!-- Editable Alias Input & Details -->
+<div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
+<div>
+<div class="flex items-center gap-1.5">
+<input class="text-sm font-semibold text-neutral-800 bg-neutral-100 hover:bg-neutral-50 focus:bg-white px-2 py-1 rounded border border-transparent hover:border-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-28 outline-none transition-all" title="点击重命名标签" type="text" value="上海">
+<span class="text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium text-[11px] border border-emerald-200">本地基准</span>
+</div>
+<div class="text-[11px] text-neutral-400 font-mono pl-2 mt-0.5">Asia/Shanghai (UTC+8)</div>
+</div>
+<div class="text-right sm:text-left flex items-center sm:justify-start gap-2">
+<span class="text-xs text-neutral-500">时差: <span class="font-mono text-neutral-800 font-medium">+0 小时</span></span>
+<span class="text-[11px] bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded font-mono">13:21</span>
+</div>
+</div>
+</div>
+<!-- Controls: Visible Toggle, Reorder, Delete -->
+<div class="flex items-center space-x-2 pl-2 border-l border-neutral-100">
+<!-- macOS Native Toggle Switch -->
+<label class="macos-switch relative inline-flex items-center cursor-pointer" title="在菜单栏显示此项目">
+<input checked="" class="sr-only" type="checkbox">
+<div class="macos-switch-track w-9 h-5 bg-neutral-300 rounded-full transition-colors relative">
+<div class="macos-switch-thumb w-4 h-4 bg-white rounded-full shadow absolute left-0.5 top-0.5 transition-transform duration-200"></div>
+</div>
+<span class="ml-1.5 text-xs text-neutral-600 select-none">显示</span>
+</label>
+<!-- Order Buttons -->
+<div class="flex items-center space-x-1">
+<button class="p-1 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 disabled:opacity-30" disabled="" title="上移" type="button">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"></polyline></svg>
+</button>
+<button class="p-1 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="下移" type="button">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+</button>
+</div>
+<!-- Delete Button -->
+<button class="p-1 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" title="移除时区" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="8" x2="16" y1="12" y2="12"></line></svg>
+</button>
+</div>
+</div>
+<!-- Timezone Item 2 -->
+<div class="group bg-white rounded-xl p-3 border border-neutral-200/80 shadow-mac-card hover:border-blue-400 transition-all flex items-center justify-between gap-3">
+<div class="flex items-center space-x-3 flex-1 min-w-0">
+<!-- Reorder Handle -->
+<div class="cursor-grab active:cursor-grabbing text-neutral-300 hover:text-neutral-500 p-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<circle cx="9" cy="5" r="1"></circle>
+<circle cx="9" cy="12" r="1"></circle>
+<circle cx="9" cy="19" r="1"></circle>
+<circle cx="15" cy="5" r="1"></circle>
+<circle cx="15" cy="12" r="1"></circle>
+<circle cx="15" cy="19" r="1"></circle>
+</svg>
+</div>
+<!-- Editable Alias Input & Details -->
+<div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
+<div>
+<div class="flex items-center gap-1.5">
+<input class="text-sm font-semibold text-neutral-800 bg-neutral-100 hover:bg-neutral-50 focus:bg-white px-2 py-1 rounded border border-transparent hover:border-neutral-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-28 outline-none transition-all" title="点击重命名标签" type="text" value="洛杉矶">
+<span class="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium text-[11px] border border-amber-200">冬令时 PST</span>
+</div>
+<div class="text-[11px] text-neutral-400 font-mono pl-2 mt-0.5">America/Los_Angeles (UTC-8)</div>
+</div>
+<div class="text-right sm:text-left flex items-center sm:justify-start gap-2">
+<span class="text-xs text-neutral-500">时差: <span class="font-mono text-rose-500 font-medium">-16 小时</span></span>
+<span class="text-[11px] bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded font-mono">21:21 -1d</span>
+</div>
+</div>
+</div>
+<!-- Controls: Visible Toggle, Reorder, Delete -->
+<div class="flex items-center space-x-2 pl-2 border-l border-neutral-100">
+<label class="macos-switch relative inline-flex items-center cursor-pointer" title="在菜单栏显示此项目">
+<input checked="" class="sr-only" type="checkbox">
+<div class="macos-switch-track w-9 h-5 bg-neutral-300 rounded-full transition-colors relative">
+<div class="macos-switch-thumb w-4 h-4 bg-white rounded-full shadow absolute left-0.5 top-0.5 transition-transform duration-200"></div>
+</div>
+<span class="ml-1.5 text-xs text-neutral-600 select-none">显示</span>
+</label>
+<div class="flex items-center space-x-1">
+<button class="p-1 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="上移" type="button">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"></polyline></svg>
+</button>
+<button class="p-1 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 disabled:opacity-30" disabled="" title="下移" type="button">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+</button>
+</div>
+<button class="p-1 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" title="移除时区" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="8" x2="16" y1="12" y2="12"></line></svg>
+</button>
+</div>
+</div>
+</div>
+<!-- Add Timezone Interactive Bar -->
+<div class="mt-3 p-2 bg-neutral-200/50 rounded-xl border border-neutral-200 flex flex-col sm:flex-row gap-2 items-center">
+<div class="relative flex-1 w-full">
+<svg class="w-4 h-4 text-neutral-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<input class="w-full pl-9 pr-4 py-1.5 text-xs bg-white rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="搜索城市、国家、首府或时区 (如: 东京, London, EST)..." type="text">
+</div>
+<div class="flex items-center gap-2 w-full sm:w-auto">
+<select class="text-xs bg-white border border-neutral-300 rounded-lg px-2.5 py-1.5 text-neutral-700 focus:outline-none focus:border-blue-500 flex-1 sm:flex-none">
+<option value="Asia/Tokyo">Asia/Tokyo · 东京 (UTC+9)</option>
+<option value="Europe/London">Europe/London · 伦敦 (UTC+0)</option>
+<option value="America/New_York">America/New_York · 纽约 (UTC-5)</option>
+<option value="Europe/Berlin">Europe/Berlin · 柏林 (UTC+1)</option>
+<option value="Australia/Sydney">Australia/Sydney · 悉尼 (UTC+11)</option>
+</select>
+<button class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-medium px-4 py-1.5 rounded-lg shadow-sm transition-all flex items-center gap-1 flex-shrink-0" type="button">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" x2="12" y1="5" y2="19"></line><line x1="5" x2="19" y1="12" y2="12"></line></svg>
+<span class="">添加时区</span>
+</button>
+</div>
+</div>
+</section>
+<!-- END: Configured Timezones Section -->
+<!-- BEGIN: Format and Styling Settings Section -->
+<section class="bg-white rounded-xl p-4 border border-neutral-200/80 shadow-mac-card space-y-4" data-purpose="format-and-typography-settings">
+<h2 class="text-sm font-semibold text-neutral-800 border-b border-neutral-100 pb-2 flex items-center justify-between">
+<span class="">显示与排版定制</span>
+<span class="text-xs text-neutral-400 font-normal">支持自定符号与格式</span>
+</h2>
+<!-- Format Preset Chips & Selector -->
+<div class="space-y-2">
+<label class="text-xs font-medium text-neutral-600 block">时间格式预设</label>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+<button class="text-xs px-2.5 py-2 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 text-left transition-colors" type="button">
+<span class="block font-semibold">极简时间</span>
+<span class="text-[11px] text-neutral-400 font-mono mt-0.5">13:21</span>
+</button>
+<button class="text-xs px-2.5 py-2 rounded-lg border border-blue-500 bg-blue-50/50 text-blue-700 text-left transition-colors relative ring-1 ring-blue-500" type="button">
+<span class="block font-semibold">常用标准</span>
+<span class="text-[11px] text-blue-600 font-mono mt-0.5">11-09 Mon 13:21</span>
+<span class="absolute top-1 right-1.5 text-[9px] bg-blue-600 text-white rounded px-1">当前</span>
+</button>
+<button class="text-xs px-2.5 py-2 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 text-left transition-colors" type="button">
+<span class="block font-semibold">详细全量</span>
+<span class="text-[11px] text-neutral-400 font-mono mt-0.5">2024-11-09 13:21:00</span>
+</button>
+<button class="text-xs px-2.5 py-2 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 text-left transition-colors" type="button">
+<span class="block font-semibold">12小时制</span>
+<span class="text-[11px] text-neutral-400 font-mono mt-0.5">01:21 PM</span>
+</button>
+</div>
+</div>
+<!-- Custom Format String Editor -->
+<div class="space-y-1.5 pt-1">
+<div class="flex items-center justify-between">
+<label class="text-xs font-medium text-neutral-600" for="formatInput">自定义时间格式表达式</label>
+<span class="text-[11px] text-neutral-400 font-mono">遵循标准 Unicode LDML 规范</span>
+</div>
+<div class="flex gap-2">
+<input class="font-mono text-xs text-neutral-800 bg-neutral-50 hover:bg-white focus:bg-white px-3 py-2 rounded-lg border border-neutral-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 flex-1 outline-none transition-all" id="formatInput" type="text" value="MM-dd EEE HH:mm">
+<button class="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-medium rounded-lg border border-neutral-300 transition-colors" type="button">应用修改</button>
+</div>
+<!-- Syntax Quick Tokens -->
+<div class="flex flex-wrap gap-1.5 pt-1 text-[11px] text-neutral-500 font-mono">
+<span class="px-1.5 py-0.5 rounded bg-neutral-100 border border-neutral-200">HH: 24小时</span>
+<span class="px-1.5 py-0.5 rounded bg-neutral-100 border border-neutral-200">h: 12小时</span>
+<span class="px-1.5 py-0.5 rounded bg-neutral-100 border border-neutral-200">mm: 分钟</span>
+<span class="px-1.5 py-0.5 rounded bg-neutral-100 border border-neutral-200">ss: 秒</span>
+<span class="px-1.5 py-0.5 rounded bg-neutral-100 border border-neutral-200">a: AM/PM</span>
+<span class="px-1.5 py-0.5 rounded bg-neutral-100 border border-neutral-200">yyyy: 年</span>
+<span class="px-1.5 py-0.5 rounded bg-neutral-100 border border-neutral-200">MM-dd: 月-日</span>
+<span class="px-1.5 py-0.5 rounded bg-neutral-100 border border-neutral-200">EEE: 星期</span>
+</div>
+</div>
+<!-- Menu Bar Typography and Alignment -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-neutral-100">
+<div>
+<label class="text-xs font-medium text-neutral-600 block mb-1">菜单栏字体选择</label>
+<div class="relative">
+<select class="w-full text-xs bg-neutral-50 hover:bg-white border border-neutral-300 rounded-lg px-3 py-2 text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+<option selected="" value="mono">系统等宽字体 (SF Mono - 推荐，防止数字抖动)</option>
+<option value="system">系统默认常规 (SF Pro Text)</option>
+<option value="compact">紧凑型等宽 (Compact Monospace)</option>
+<option value="rounded">圆润字体 (SF Pro Rounded)</option>
+</select>
+</div>
+</div>
+<div>
+<label class="text-xs font-medium text-neutral-600 block mb-1">分隔符样式</label>
+<div class="relative">
+<select class="w-full text-xs bg-neutral-50 hover:bg-white border border-neutral-300 rounded-lg px-3 py-2 text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+<option selected="" value="dot">中圆点 · (默认)</option>
+<option value="pipe">竖线分隔符 |</option>
+<option value="dash">短横线 -</option>
+<option value="space">双空格 (空白留空)</option>
+</select>
+</div>
+</div>
+</div>
+</section>
+<!-- END: Format and Styling Settings Section -->
+<!-- BEGIN: Preferences & Startup Options -->
+<section class="bg-white rounded-xl p-4 border border-neutral-200/80 shadow-mac-card" data-purpose="general-preferences">
+<h3 class="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">系统与启动首选项</h3>
+<div class="space-y-2.5">
+<label class="flex items-center gap-2.5 text-xs text-neutral-700 cursor-pointer select-none">
+<input checked="" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500/20 w-4 h-4" type="checkbox">
+<span class="">登录 macOS 时自动启动 ZoneBar 后台守护进程</span>
+</label>
+<label class="flex items-center gap-2.5 text-xs text-neutral-700 cursor-pointer select-none">
+<input checked="" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500/20 w-4 h-4" type="checkbox">
+<span class="">自动监测时区夏令时 (DST) 切换并平滑补偿</span>
+</label>
+<label class="flex items-center gap-2.5 text-xs text-neutral-700 cursor-pointer select-none">
+<input checked="" class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500/20 w-4 h-4" type="checkbox">
+<span class="">单击菜单栏时钟弹出全功能日历与交互详情盘</span>
+</label>
+</div>
+<div class="pt-3 mt-3 border-t border-neutral-100 flex items-center justify-between"><div class="flex flex-col"><label class="text-xs font-medium text-neutral-700" for="language-select">界面语言 (Language)</label><span class="text-[11px] text-neutral-400">选择应用界面与时间描述的默认语言</span></div><div class="relative w-44"><select id="language-select" class="w-full text-xs bg-neutral-50 hover:bg-white border border-neutral-300 rounded-lg px-2.5 py-1.5 text-neutral-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"><option value="zh-CN" selected="">简体中文 (Simplified Chinese)</option><option value="en-US">English (US)</option></select></div></div></section>
+<!-- END: Preferences & Startup Options -->
+</div>
+<!-- BEGIN: macOS Modal Footer -->
+<footer class="h-14 bg-[#ECECEC]/90 border-t border-black/[0.08] px-6 flex items-center justify-between text-xs text-neutral-500 select-none">
+<div class="flex items-center space-x-2 text-[11px]">
+<span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="">设置更改实时生效 · 不篡改系统时区</span>
+</div>
+<div class="flex items-center space-x-3">
+<button class="px-3 py-1.5 rounded-lg border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700 text-xs font-medium shadow-sm transition-colors" type="button">
+          恢复默认
+        </button>
+<button class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-medium shadow-sm transition-colors" type="button">
+          完成
+        </button>
+</div>
+</footer>
+<!-- END: macOS Modal Footer -->
+</main>
+<!-- END: macOS App Window Container -->
+<!-- BEGIN: Interactive Preview Script -->
+<script data-purpose="live-clock-updater">
+    // Lightweight live clock update to bring native macOS feel to the preview bar
+    function updateClockPreviews() {
+      const now = new Date();
+      
+      // Shanghai Preview Time (UTC+8)
+      const shTime = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Shanghai',
+        month: '2-digit',
+        day: '2-digit',
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(now);
+
+      // Los Angeles Preview Time (UTC-8/UTC-7 depending on DST)
+      const laTime = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Los_Angeles',
+        month: '2-digit',
+        day: '2-digit',
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(now);
+
+      const formatPart = (parts) => {
+        const m = parts.find(p => p.type === 'month')?.value || '11';
+        const d = parts.find(p => p.type === 'day')?.value || '09';
+        const w = parts.find(p => p.type === 'weekday')?.value || 'Mon';
+        const hr = parts.find(p => p.type === 'hour')?.value || '13';
+        const min = parts.find(p => p.type === 'minute')?.value || '21';
+        return `${m}-${d} ${w} ${hr}:${min}`;
+      };
+
+      const p1 = document.querySelector('#preview-tag-1 span.text-white');
+      const p2 = document.querySelector('#preview-tag-2 span.text-white');
+      if (p1) p1.textContent = formatPart(shTime);
+      if (p2) p2.textContent = formatPart(laTime);
+    }
+
+    updateClockPreviews();
+    setInterval(updateClockPreviews, 10000);
+  </script>
+<!-- END: Interactive Preview Script -->
+
+
+</body></html>

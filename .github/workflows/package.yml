@@ -1,0 +1,111 @@
+name: Package macOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Test and package (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      HORIVA_BUILD_NUMBER: ${{ github.run_number }}
+      TARGET_ARCH: ${{ matrix.arch }}
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Read version from tag
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, re
+          tag = os.environ['RELEASE_TAG']
+          match = re.fullmatch(r'v(\d+\.\d+\.\d+)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?', tag)
+          if not match:
+              raise SystemExit('Use a version tag such as v1.4.0 or v1.4.1-rc.1')
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('HORIVA_VERSION=' + match.group(1) + '\n')
+          PY
+
+      - name: Check the native toolchain
+        run: |
+          test "$(uname -m)" = "$TARGET_ARCH"
+          swift --version
+          xcodebuild -version
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build and package the application
+        run: ./build.sh
+
+      - name: Verify the application bundle
+        run: |
+          codesign --verify --strict --verbose=2 dist/Horiva.app
+          plutil -lint dist/Horiva.app/Contents/Info.plist
+          test "$(lipo -archs dist/Horiva.app/Contents/MacOS/Horiva)" = "$TARGET_ARCH"
+
+      - name: Upload packaged application
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: Horiva-macos-${{ matrix.arch }}
+          path: dist/Horiva-*-macOS-${{ matrix.arch }}.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - name: Download application packages
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          pattern: Horiva-macos-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Publish versioned packages and checksums
+        shell: bash
+        run: |
+          cd artifacts
+          test "$(find . -maxdepth 1 -name 'Horiva-*-macOS-*.zip' | wc -l)" -eq 2
+          sha256sum Horiva-*-macOS-*.zip > SHA256SUMS.txt
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" Horiva-*-macOS-*.zip SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            prerelease=()
+            if [[ "$RELEASE_TAG" == *-* ]]; then prerelease+=(--prerelease); fi
+            gh release create "$RELEASE_TAG" Horiva-*-macOS-*.zip SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "时屿 · Horiva $RELEASE_TAG" --generate-notes "${prerelease[@]}"
+          fi

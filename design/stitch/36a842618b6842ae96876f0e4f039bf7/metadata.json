@@ -1,0 +1,19 @@
+{
+  "project": {
+    "id": "2144432589957941593",
+    "title": "macOS Settings Layout Redesign"
+  },
+  "screen": {
+    "id": "36a842618b6842ae96876f0e4f039bf7",
+    "title": "ZoneBar 设置界面优化 (macOS)"
+  },
+  "image": {
+    "width": 2560,
+    "height": 2048,
+    "mimeType": "image/jpeg"
+  },
+  "files": {
+    "image": "screen.jpg",
+    "code": "index.html"
+  }
+}
